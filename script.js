@@ -1,6 +1,6 @@
 let board;
-let score_display;
-let score=0;
+let scoreDisplay;
+let score = 0;
 let bestScore = localStorage.getItem("bestScore") || 0;
 
 document.getElementById("best").textContent = bestScore;
@@ -15,45 +15,47 @@ function updateBestscore() {
 
 document.addEventListener('DOMContentLoaded', () => {
     board = document.getElementById('board');
-    score_display = document.getElementById('score');
+    scoreDisplay = document.getElementById('score');
     createGrid();
-    addGrid();
-    addGrid();
-})
+    addRandomTile();
+    addRandomTile();
+});
 
 document.getElementById("newGame").addEventListener("click", () => {
     const confirmReset = confirm("정말로 새 게임을 시작하시겠습니까?");
-    if (!confirmReset)
+    if (!confirmReset) {
         return;
+    }
 
     const tiles = document.querySelectorAll(".tile");
     tiles.forEach(tile => {
         tile.textContent = "";
         tile.setAttribute("data-value", "");
-    })
+    });
 
-    score=0;
-    score_display.textContent = "0";
+    score = 0;
+    scoreDisplay.textContent = "0";
 
-    addGrid();
-    addGrid();
-})
+    addRandomTile();
+    addRandomTile();
+});
 
 function createGrid() {
-    for (let i=0; i<16; i++) {
+    for (let i = 0; i < 16; i++) {
         const tile = document.createElement("div");
         tile.classList.add("tile");
         board.appendChild(tile);
     }
 }
 
-function addGrid() {
+function addRandomTile() {
     const emptyTiles = Array.from(document.querySelectorAll('.tile')).filter(tile => tile.textContent === "");
 
-    if (emptyTiles.length === 0) 
+    if (emptyTiles.length === 0) {
         return;
+    }
 
-    const randomTile = emptyTiles[Math.floor(Math.random()*emptyTiles.length)];
+    const randomTile = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
     const number = Math.random() < 0.9 ? 2 : 4;
     randomTile.textContent = number;
     randomTile.setAttribute("data-value", number);
@@ -62,220 +64,137 @@ function addGrid() {
 document.addEventListener("keydown", keyInput);
 
 function keyInput(event) {
-    switch(event.key) {
+    if (gameOver()) {
+        return;
+    }
+
+    let moved = false;
+    switch (event.key) {
         case "ArrowLeft":
-            moveLeft();
+            moved = moveTiles("left");
             break;
         case "ArrowRight":
-            moveRight();
+            moved = moveTiles("right");
             break;
         case "ArrowUp":
-            moveUp();
+            moved = moveTiles("up");
             break;
         case "ArrowDown":
-            moveDown();
+            moved = moveTiles("down");
             break;
+        default:
+            return;
     }
+
+    if (moved) {
+        addRandomTile();
+    }
+
+    checkGameOver();
 }
 
-function moveLeft() {
+function moveTiles(direction) {
     const allTiles = Array.from(document.querySelectorAll('.tile'));
+    let hasMovedOrMerged = false;
 
-    for (let row=0; row<4; row++) {
-        const rowTiles = allTiles.slice(row*4, row*4+4);
-        let tiles = rowTiles.map(tile => tile.textContent === "" ? 0 : parseInt(tile.textContent));
-        tiles = tiles.filter(value => value!=0);
+    for (let i = 0; i < 4; i++) {
+        let lineTiles = [];
+        let lineValues = [];
 
-        for (let i=0; i<tiles.length-1; i++) {
-            if (tiles[i]==tiles[i+1]) {
-                tiles[i] *= 2;
-                score += tiles[i];
-                score_display.textContent = score;
-                updateBestscore();
-
-                rowTiles[i].classList.add("merge");
-                setTimeout(() => rowTiles[i].classList.remove("merge"), 100);
-
-                tiles[i+1]=0;
-            }
-        }
-        tiles = tiles.filter(value => value !== 0)
-        while (tiles.length < 4) 
-            tiles.push(0);
-
-        tiles.forEach((value, i) => {
-            rowTiles[i].textContent = value === 0 ? "" : value;
-            rowTiles[i].setAttribute("data-value", value === 0 ? "" : value);
-        })
-    }
-    addGrid();  
-
-    if (gameOver()) {
-        setTimeout(() => {
-            alert("Game Over");
-            if (score > bestScore) {
-                bestScore = score;
-                localStorage.setItem("bestScore", bestScore);
-                document.getElementById("best").textContent = bestScore;
-            }
-        })
-    }
-} 
-
-function moveRight() {
-    const allTiles = Array.from(document.querySelectorAll('.tile'));
-
-    for (let row = 0; row < 4; row++) {
-        const rowTiles = allTiles.slice(row * 4, row * 4 + 4);
-        let tiles = rowTiles.map(tile => tile.textContent === "" ? 0 : parseInt(tile.textContent));
-        
-        tiles = tiles.filter(value => value !== 0);
-        tiles.reverse();
-
-        for (let i = 0; i < tiles.length - 1; i++) {
-            if (tiles[i] === tiles[i + 1]) {
-                tiles[i] *= 2;
-                score += tiles[i];
-                score_display.textContent = score;
-                updateBestscore();
-
-                tiles[i + 1] = 0;
+        if (direction === "left" || direction === "right") {
+            lineTiles = allTiles.slice(i * 4, i * 4 + 4);
+        } else {
+            for (let j = 0; j < 4; j++) {
+                lineTiles.push(allTiles[j * 4 + i]);
             }
         }
 
-        tiles = tiles.filter(value => value !== 0);
-        while (tiles.length < 4) tiles.push(0);
-        tiles.reverse();
+        lineValues = lineTiles.map(tile => tile.textContent === "" ? 0 : parseInt(tile.textContent));
 
-        tiles.forEach((value, i) => {
-            rowTiles[i].textContent = value === 0 ? "" : value;
-            rowTiles[i].setAttribute("data-value", value === 0 ? "" : value);
-        });
-    }
+        let originalLineValues = [...lineValues];
 
-    addGrid();
+        let filteredValues = lineValues.filter(value => value !== 0);
 
-    if (gameOver()) {
-        setTimeout(() => {
-            alert("Game Over");
-            if (score > bestScore) {
-                bestScore = score;
-                localStorage.setItem("bestScore", bestScore);
-                document.getElementById("best").textContent = bestScore;
+        if (direction === "right" || direction === "down") {
+            filteredValues.reverse();
+        }
+
+        for (let j = 0; j < filteredValues.length - 1; j++) {
+            if (filteredValues[j] === filteredValues[j + 1]) {
+                filteredValues[j] *= 2;
+                score += filteredValues[j];
+                scoreDisplay.textContent = score;
+                updateBestscore();
+
+                let tileToAnimate = lineTiles.find(t => parseInt(t.textContent) === filteredValues[j]);
+                if (tileToAnimate) {
+                    tileToAnimate.classList.add("merge");
+                    setTimeout(() => tileToAnimate.classList.remove("merge"), 100);
+                }
+
+                filteredValues[j + 1] = 0;
             }
-        });
+        }
+
+        filteredValues = filteredValues.filter(value => value !== 0);
+        while (filteredValues.length < 4) {
+            if (direction === "left" || direction === "up") {
+                filteredValues.push(0);
+            } else {
+                filteredValues.unshift(0);
+            }
+        }
+
+        if (direction === "right" || direction === "down") {
+            filteredValues.reverse();
+        }
+
+        for (let j = 0; j < 4; j++) {
+            const tile = lineTiles[j];
+            const newValue = filteredValues[j];
+            if (parseInt(tile.textContent) !== newValue || (tile.textContent === "" && newValue !== 0)) {
+                hasMovedOrMerged = true;
+            }
+            tile.textContent = newValue === 0 ? "" : newValue;
+            tile.setAttribute("data-value", newValue === 0 ? "" : newValue);
+        }
     }
+    return hasMovedOrMerged;
 }
 
-
-function moveUp() {
-    const allTiles = Array.from(document.querySelectorAll('.tile'));
-
-    for (let col=0; col<4; col++) {
-        let columnTiles = [];
-        for (let row=0; row<4; row++) {
-            const index = row*4+col;
-            columnTiles.push(allTiles[index]);
-        }
-        let tiles = columnTiles.map(tile => tile.textContent === "" ? 0 : parseInt(tile.textContent));
-        tiles = tiles.filter(value => value !== 0);
-
-        for (let i=0; i<tiles.length; i++) {
-            if (tiles[i] === tiles[i+1]) {
-                tiles[i] *= 2;
-                score += tiles[i];
-                score_display.textContent = score;
-                updateBestscore();
-
-                columnTiles[i].classList.add("merge");
-                setTimeout(() => columnTiles[i].classList.remove("merge"), 100);
-
-                tiles[i+1]=0;
-            }
-        }
-        tiles = tiles.filter(value => value !== 0);
-        while (tiles.length < 4) 
-            tiles.push(0);
-
-        tiles.forEach((value, i) => {
-            columnTiles[i].textContent = value === 0 ? "" : value;
-            columnTiles[i].setAttribute("data-value", value === 0 ? "" : value);
-        })
-    }
-    addGrid();
-
+function checkGameOver() {
     if (gameOver()) {
         setTimeout(() => {
-            alert("Game Over");
+            alert("Game Over!");
             updateBestscore();
-        })
-    }
-}
-
-function moveDown() {
-    const allTiles = Array.from(document.querySelectorAll('.tile'));
-    for (let col=0; col<4; col++) {
-        let columnTiles = [];
-        for (let row=0; row<4; row++) {
-            const index = row*4+col;
-            columnTiles.push(allTiles[index]);
-        }
-        let tiles = columnTiles.map(tile => tile.textContent === "" ? 0 : parseInt(tile.textContent));
-        tiles = tiles.filter(value => value !== 0);
-        tiles.reverse();
-
-        for (let i=0; i<tiles.length-1; i++) {
-            if (tiles[i] === tiles[i+1]) {
-                tiles[i] *= 2;
-                score += tiles[i];
-                score_display.textContent = score;
-                updateBestscore();
-
-                columnTiles[i].classList.add("merge");
-                setTimeout(() => columnTiles[i].classList.remove("merge"), 100);
-
-                tiles[i+1]=0;
-            } 
-        }
-        tiles = tiles.filter(value => value !== 0);
-        while (tiles.length < 4) 
-            tiles.push(0);
-
-        tiles.reverse();
-        tiles.forEach((value, i) => {
-            columnTiles[i].textContent = value === 0 ? "" : value;
-            columnTiles[i].setAttribute("data-value", value === 0 ? "" : value);
-        })
-    }
-    addGrid();
-
-    if (gameOver()) {
-        setTimeout(() => {
-            alert("Game Over");
-            updateBestscore();
-        })
+        }, 200);
     }
 }
 
 function gameOver() {
     const tiles = Array.from(document.querySelectorAll(".tile")).map(t => t.textContent === "" ? 0 : parseInt(t.textContent));
-    
-    if (tiles.includes(0))
+
+    if (tiles.includes(0)) {
         return false;
-    for (let row=0; row<4; row++) {
-        for (let col=0; col<3; col++) {
-            const index = row*4 + col;
-            if (tiles[index] === tiles[index+1])
+    }
+
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 3; col++) {
+            const index = row * 4 + col;
+            if (tiles[index] === tiles[index + 1]) {
                 return false;
+            }
         }
     }
 
-    for (let col=0; col<4; col++) {
-        for (let row=0; row<3; row++) {
-            const index = row*4 + col;
-            if (tiles[index] === tiles[index+4])
+    for (let col = 0; col < 4; col++) {
+        for (let row = 0; row < 3; row++) {
+            const index = row * 4 + col;
+            if (tiles[index] === tiles[index + 4]) {
                 return false;
+            }
         }
     }
+
     return true;
 }

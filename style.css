@@ -40,7 +40,7 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
     background: #f9f6f2;
     display: flex;
     flex-direction: column;
@@ -50,7 +50,9 @@ body {
 
 .board {
     width: 500px;
-    height: 500px;
+    max-width: 90vw;
+    height: auto;
+    aspect-ratio: 1/1;
     background: #cdc1b4;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -109,4 +111,34 @@ body {
 }
 .tile[data-value="2048"] {
     background-color: #7c2813;
+}
+
+@media (max-width: 600px) {
+    .top {
+        flex-direction: column;
+        gap: 20px;
+        margin: 20px;
+    }
+
+    .top-left h1 {
+        font-size: 50px;
+    }
+
+    .top-center {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #newGame {
+        width: 100%;
+    }
+
+    .board {
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .tile {
+        font-size: 25px;
+    }
 }
